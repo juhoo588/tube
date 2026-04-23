@@ -1,4 +1,4 @@
-# # Tubelens 스타일 프로젝트 (GitHub 업로드용 완성 패키지)
+# Tubelens 스타일 프로젝트 (GitHub 업로드용 완성 패키지)
 
 ## 추천 레포 구조
 
@@ -329,3 +329,207 @@ LightGBM/XGBoost로 예측 가능.
 ---
 
 원하면 다음 단계로 "Tubelens 실제 알고리즘 고도화(ML 점수모델 + 유튜브 API 연결)"도 이어서 확장 가능.
+
+---
+
+# 확장 1 — ML 기반 떡상 예측 엔진
+
+## feature_engineering.py
+
+```python
+import pandas as pd
+
+def make_features(video):
+    return {
+      'velocity_ratio': video['views_24h']/max(video['subs'],1),
+      'ctr': video['ctr'],
+      'retention': video['retention'],
+      'comment_velocity': video['comments_1h'],
+      'keyword_gap': video['keyword_gap'],
+      'competition': video['competition'],
+      'thumbnail_emotion_score': video['thumbnail_score']
+    }
+```
+
+## train_model.py
+
+```python
+from lightgbm import LGBMClassifier
+
+X_train=training_features
+y_train=viral_labels
+
+model=LGBMClassifier(
+ n_estimators=500,
+ learning_rate=0.03,
+ max_depth=7
+)
+
+model.fit(X_train,y_train)
+```
+
+예측 결과:
+
+```python
+viral_probability=model.predict_proba([features])[0][1]
+```
+
+0.85 이상이면 떡상 후보.
+
+---
+
+# 확장 2 — YouTube Data API 수집기
+
+## youtube_collector.py
+
+```python
+from googleapiclient.discovery import build
+
+youtube=build(
+ 'youtube',
+ 'v3',
+ developerKey=API_KEY
+)
+
+def search_niche(keyword):
+
+ req=youtube.search().list(
+   part='snippet',
+   q=keyword,
+   order='date',
+   maxResults=20
+ )
+
+ return req.execute()
+```
+
+탐지 로직:
+
+* 최근 업로드 영상만 추출
+* 24시간 조회속도 계산
+* 구독자 대비 비정상 성장 감지
+
+---
+
+# 확장 3 — 썸네일 CTR 분석기
+
+```python
+def thumbnail_ctr_score(
+ emotion,
+ contrast,
+ text_density,
+ curiosity_gap
+):
+
+ return (
+   emotion*0.35+
+   contrast*0.2+
+   curiosity_gap*0.35-
+   text_density*0.1
+ )
+```
+
+향후 CV 모델:
+
+* YOLO
+* CLIP
+* Vision Transformer
+
+---
+
+# 확장 4 — 키워드 갭 탐지기
+
+```python
+def keyword_gap(search_volume,video_count):
+ return search_volume/(video_count+1)
+```
+
+높은 값 = 블루오션 니치.
+
+예:
+
+* faceless ai tools
+* ai news shorts
+* finance automation
+
+---
+
+# 확장 5 — DB 스키마
+
+```sql
+videos(
+ id,
+ title,
+ channel,
+ velocity,
+ ctr,
+ retention,
+ trend_score,
+ viral_probability,
+ created_at
+)
+```
+
+```sql
+keyword_signals(
+ keyword,
+ gap_score,
+ competition,
+ search_volume
+)
+```
+
+---
+
+# 확장 6 — Tubelens식 Opportunity Score
+
+```python
+def opportunity_score(
+ demand,
+ low_comp,
+ growth,
+ monetization
+):
+ return (
+ demand*.3+
+ low_comp*.3+
+ growth*.25+
+ monetization*.15
+ )
+```
+
+100점 스케일로 랭킹.
+
+---
+
+# 추천 추가 SaaS 기능
+
+* Rising Before Viral 알림봇
+* Shorts Hunter 스캐너
+* Competitor Gap Finder
+* Thumbnail A/B predictor
+* 제목 생성기(CTR optimizer)
+
+---
+
+## 향후 배포 구조
+
+```text
+Next.js → Vercel
+FastAPI → Railway
+Postgres → Supabase
+Redis → Upstash
+Workers → Celery
+```
+
+---
+
+## 다음 고도화 가능
+
+원하면 다음엔 실제 Tubelens 수준으로
+
+* 경쟁 채널 역공학 분석
+* 떡상 영상 조기 감지(24시간 이내)
+* Shorts 자동 발굴 봇
+* 구독형 SaaS 과금 구조
+  까지 확장 가능.
