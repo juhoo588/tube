@@ -524,6 +524,192 @@ Workers → Celery
 
 ---
 
+---
+
+# 확장 7 — Shorts 자동 발굴 봇
+
+## 발굴 로직 핵심 지표
+
+초기 6~24시간 데이터 기준:
+
+```python
+def shorts_signal(video):
+
+ velocity=(video['views_6h']/video['subs'])
+ engagement=(video['likes']+video['comments'])/video['views']
+ retention=video['avg_view_percent']
+
+ score=(
+ velocity*0.4+
+ engagement*0.3+
+ retention*0.3
+ )
+
+ return score
+```
+
+---
+
+## rising_shorts_bot.py
+
+```python
+from youtube_collector import search_niche
+
+WATCH_KEYWORDS=[
+ 'ai tools',
+ 'crypto news',
+ 'side hustle',
+ 'faceless shorts'
+]
+
+def hunt_rising_shorts():
+
+ winners=[]
+
+ for kw in WATCH_KEYWORDS:
+   videos=search_niche(kw)
+
+   for v in videos:
+      signal=shorts_signal(v)
+
+      if signal>0.82:
+         winners.append(v)
+
+ return sorted(
+   winners,
+   key=lambda x:x['views_6h'],
+   reverse=True
+ )
+```
+
+---
+
+## 알림봇 (급상승 포착)
+
+```python
+if signal > 0.90:
+ send_discord_alert(video)
+```
+
+Slack/Discord/Telegram 연동 가능.
+
+---
+
+# 확장 8 — 경쟁 채널 역공학 분석 엔진
+
+경쟁 채널별 성공패턴 추출.
+
+## competitor_reverse_engine.py
+
+```python
+def channel_pattern(channel):
+
+ return {
+  'avg_title_length':42,
+  'hook_style':'curiosity',
+  'thumbnail_emotion':'shock',
+  'avg_post_freq':2.1,
+  'winning_topics':[
+      'AI automation',
+      'finance hacks'
+   ]
+ }
+```
+
+---
+
+## 경쟁 채널 복제 가능 패턴 추출
+
+```python
+def opportunity_gap(my_channel,competitor):
+
+ gaps=[]
+
+ for topic in competitor['winning_topics']:
+   if topic not in my_channel['covered_topics']:
+      gaps.append(topic)
+
+ return gaps
+```
+
+결과:
+
+* 경쟁채널 잘 먹히는 포맷
+* 아직 내가 안 다룬 블루오션 주제
+* 썸네일/제목 패턴 복원
+
+---
+
+## 제목 역공학
+
+```python
+Top titles:
+
+I Made $1000 Using AI in 7 Days
+This Faceless Channel Grew To 1M Views
+3 AI Tools Nobody Is Using Yet
+```
+
+공통패턴:
+
+Formula:
+[Number] + Curiosity + Underserved Topic
+
+````
+
+---
+
+## Shorts 포맷 역공학
+
+분석 지표:
+
+```python
+hook_first_3_seconds
+caption_density
+cut_frequency
+subtitle_velocity
+loopability_score
+````
+
+loopability 높으면 쇼츠 폭발 가능성 큼.
+
+---
+
+# 경쟁채널 스파이 대시보드 구조
+
+```sql
+competitor_channels(
+ channel,
+ viral_ratio,
+ avg_ctr,
+ avg_retention
+)
+```
+
+```sql
+viral_patterns(
+ topic,
+ hook_type,
+ thumbnail_type,
+ views_multiplier
+)
+```
+
+---
+
+## 완성형 SaaS 구조 (Tubelens급)
+
+모듈 4개:
+
+1. Trend Hunter
+2. Shorts Hunter Bot
+3. Competitor Reverse Engine
+4. Viral Predictor
+
+월 구독화 가능.
+
+---
+
 ## 다음 고도화 가능
 
 원하면 다음엔 실제 Tubelens 수준으로
